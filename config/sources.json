@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "scope": {
+    "city": "臺北市",
+    "primary_audience": "長者",
+    "supported_audiences": ["學生", "上班族", "長者"]
+  },
+  "sources": [
+    {
+      "id": "taipei_health_ltc_services",
+      "name": "臺北市政府衛生局－長照服務的內容",
+      "kind": "benefit_json_feed",
+      "url": "https://health.gov.taipei/OpenData.aspx?SN=0F8B2E2ADE6C6261",
+      "catalog_url": "https://health.gov.taipei/News.aspx?n=F6F7A595359D9597&sms=824683C75F5DE258",
+      "extract_pdfs": true,
+      "enabled": true
+    },
+    {
+      "id": "taipei_social_ltc_directory",
+      "name": "臺北市政府社會局－長照服務民眾專區",
+      "kind": "reference_page",
+      "url": "https://dosw.gov.taipei/Content_List.aspx?n=6FAF18A3C09393BB",
+      "enabled": true
+    },
+    {
+      "id": "taipei_health_ltc_directory",
+      "name": "臺北市政府衛生局－長照服務資源",
+      "kind": "reference_page",
+      "url": "https://health.gov.taipei/Content_List.aspx?n=4406ED28437FBC4E",
+      "enabled": true
+    },
+    {
+      "id": "taipei_elderly_institutions",
+      "name": "臺北市老人福利機構名冊",
+      "kind": "institution_csv",
+      "url": "https://data.taipei/api/frontstage/tpeod/dataset/resource.download?rid=2649f023-26ce-483a-a6f9-d7854522bcfd",
+      "catalog_url": "https://data.taipei/dataset/detail?id=d455b149-1a2f-4d5a-a9a8-315eb71f51f6",
+      "enabled": true
+    },
+    {
+      "id": "taipei_nursing_homes",
+      "name": "臺北市立案一般護理之家一覽表",
+      "kind": "institution_csv",
+      "url": "https://data.taipei/api/frontstage/tpeod/dataset/resource.download?rid=ed438da1-9e3c-4ccd-86be-6eeb4b275259",
+      "catalog_url": "https://data.taipei/dataset/detail?id=b20c5ea7-dcae-446b-8d85-574a2bb2c907",
+      "enabled": true
+    },
+    {
+      "id": "taipei_ltc_how_to_apply",
+      "name": "臺北市如何申請長照服務",
+      "kind": "reference_dataset",
+      "url": "https://data.taipei/api/frontstage/tpeod/dataset/resource.download?rid=e21f84e5-3c01-4526-a3fc-5669bb59961e",
+      "catalog_url": "https://data.taipei/dataset/detail?id=e1e24ba4-3293-4d38-a915-ac65d1365fb2",
+      "enabled": true
+    },
+    {
+      "id": "taipei_elderly_capacity_statistics",
+      "name": "臺北市老人長期照顧、安養機構與老人公寓、老人住宅概況",
+      "kind": "reference_dataset",
+      "url": "https://data.taipei/api/frontstage/tpeod/dataset/resource.download?rid=205a06cd-a954-4010-994c-f754632afb38",
+      "catalog_url": "https://data.taipei/dataset/detail?id=808c1eb5-53e6-4d3c-bfb6-3b37412f7b32",
+      "enabled": true
+    }
+  ]
+}
