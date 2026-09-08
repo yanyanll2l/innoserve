@@ -12,11 +12,14 @@ from __future__ import annotations
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from welfare_backend.db import Database
+from welfare_backend.fetch import FetchResponse
 from welfare_backend.matcher import match_benefit
 from welfare_backend.parse import content_hash, parse_taipei_detail
 from welfare_backend.pdf_extract import extract_welfare_fields, merge_pdf_fields_into_parent
+from welfare_backend.pipeline import ingest_benefit_pages
 
 
 class ParserTests(unittest.TestCase):
@@ -50,6 +53,42 @@ class ParserTests(unittest.TestCase):
         """
         item = parse_taipei_detail(document, "https://example.gov.taipei/meal", "失能者營養餐飲服務")
         self.assertEqual(item["service_type"], "餐飲服務")
+
+    def test_gov_tw_service_fields(self) -> None:
+        document = """
+        <html><body><main><h3>失業給付申請</h3>
+        <h4>服務內容</h4><p>提供非自願離職者失業期間基本生活保障。</p>
+        <h4>申辦資格</h4><p>非自願離職且符合就業保險年資規定。</p>
+        <h4>申辦流程</h4><p>向公立就業服務機構辦理求職登記。</p>
+        <h4>應備物品</h4><p>離職證明文件。</p>
+        <h4>聯絡窗口</h4><p>0800-777-888</p>
+        <h4>更新日期</h4><p>115-08-01</p>
+        </main></body></html>
+        """
+        item = parse_taipei_detail(
+            document, "https://www.gov.tw/example", "失業給付申請", "勞動部"
+        )
+        self.assertIn("基本生活保障", item["service_content"])
+        self.assertIn("非自願離職", item["eligibility_text"])
+        self.assertIn("求職登記", item["application_method"])
+        self.assertIn("離職證明", item["required_documents"])
+        self.assertIn("0800", item["contact"])
+        self.assertEqual(item["service_type"], "失業給付")
+
+    def test_numbered_taipei_service_fields(self) -> None:
+        document = """
+        <html><body><main><h2>中低收入老人生活津貼</h2>
+        <p>一、服務內容：</p><p>每月發給生活津貼。</p>
+        <p>二、服務對象：</p><p>設籍臺北市且年滿65歲。</p>
+        <p>此頁資訊有幫助嗎?</p>
+        </main></body></html>
+        """
+        item = parse_taipei_detail(
+            document, "https://dosw.gov.taipei/example", "中低收入老人生活津貼"
+        )
+        self.assertEqual(item["service_content"], "每月發給生活津貼。")
+        self.assertEqual(item["eligibility_text"], "設籍臺北市且年滿65歲。")
+        self.assertEqual(item["eligibility_rules"]["city"], "臺北市")
 
     # 測試 PDF 文字能不能被拆成結構化欄位
     def test_pdf_text_is_structured_as_supplemental_welfare_content(self) -> None:
@@ -178,6 +217,44 @@ class DatabaseTests(unittest.TestCase):
         )
         self.assertEqual(result["status"], "需要進一步確認")
         self.assertIn("主管機關", result["disclaimer"])
+
+    def test_ingest_curated_official_benefit_page(self) -> None:
+        source = {
+            "id": "official_pages_test",
+            "name": "官方福利頁面測試",
+            "kind": "benefit_pages",
+            "url": "https://www.gov.tw/",
+            "extract_pdfs": False,
+            "items": [{
+                "id": "student_aid",
+                "title": "弱勢學生就學補助",
+                "url": "https://www.gov.tw/student-aid",
+                "agency": "教育部",
+                "region": "全國",
+                "service_type": "就學補助",
+                "audiences": ["學生"],
+                "tags": ["弱勢學生補助"],
+            }],
+        }
+        html = """
+        <html><body><h3>弱勢學生就學補助</h3>
+        <h4>服務內容</h4><p>補助學雜費。</p>
+        <h4>申辦資格</h4><p>經濟弱勢在學學生。</p>
+        <a href='/form.pdf'>申請表</a>
+        </body></html>
+        """.encode("utf-8")
+        response = FetchResponse(
+            url="https://www.gov.tw/student-aid", body=html,
+            content_type="text/html", charset="utf-8", etag=None, last_modified=None,
+        )
+        with patch("welfare_backend.pipeline.fetch", return_value=response):
+            result = ingest_benefit_pages(source, self.database)
+        self.assertEqual(result["inserted"], 1)
+        benefits = self.database.search_benefits(audience="學生")
+        self.assertEqual(len(benefits), 1)
+        self.assertEqual(benefits[0]["region"], "全國")
+        self.assertEqual(benefits[0]["attachments"][0]["parent_benefit_title"], "弱勢學生就學補助")
+        self.assertEqual(benefits[0]["attachments"][0]["extraction_status"], "not_extracted")
 
 
 if __name__ == "__main__":

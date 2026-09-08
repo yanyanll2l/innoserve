@@ -14,7 +14,7 @@
 請在 PowerShell 執行：
 
 ```powershell
-    cd "C:\Users\prapr\Documents\ChatGPT\innoserve\mvp"
+    # cd "C:\Users\prapr\Documents\ChatGPT\innoserve\mvp"
     python -m pip install -r requirements.txt
     .\run.ps1 init
 ```
@@ -39,7 +39,18 @@
     .\run.ps1 refresh
 ```
 
-成功時會看到 `status: success`。目前資料來源是臺北市長照與長者福利，抓取時需要網路。
+成功時會看到 `status: success`。目前資料來源包含中央政府與臺北市官方福利頁面、
+臺北市長照 JSON，以及老人福利機構與護理之家 CSV；抓取時需要網路。
+
+目前可查詢的受眾與主題：
+
+- 學生：獎學金、就學貸款、弱勢學生補助、住宿補助、就學補助
+- 上班族：勞工補助、失業給付、職業訓練、育兒與就業支持
+- 長者：老人津貼、居家服務、交通接送、醫療照護、機構與失智照顧
+- 一般民眾：急難救助、身心障礙福利、住宅補助、育兒福利
+
+新增的官方申辦頁面清單放在 `config/sources.json` 的 `official_benefit_pages.items`。
+每一筆都保留官方網址、主管機關、適用地區、受眾與主題標籤。
 
 ## 產生 JSON
 
@@ -57,6 +68,9 @@
 ```powershell
 .\run.ps1 search 交通
 .\run.ps1 search 長照 --audience 長者
+.\run.ps1 search 獎學金 --audience 學生
+.\run.ps1 search 失業 --audience 上班族
+.\run.ps1 search 急難 --audience 一般民眾
 .\run.ps1 match '{"age":72,"city":"臺北市","long_term_care_level":3,"query":"交通"}'
 ```
 
@@ -216,4 +230,3 @@ matcher.py
 api.py
 查詢服務：提供 HTTP API，讓前端或聊天機器人查詢資料
 ```
-

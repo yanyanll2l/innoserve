@@ -27,7 +27,7 @@ from .config import enabled_sources, load_config
 from .db import Database, now_iso
 from .fetch import FetchResponse, fetch
 from .parse import clean_inline, extract_eligibility_rules, normalize_csv_key, parse_taipei_detail
-from .pdf_extract import enrich_attachments, merge_pdf_fields_into_parent
+from .pdf_extract import enrich_attachments, is_pdf_attachment, merge_pdf_fields_into_parent
 
 
 def _sha256(data: bytes) -> str:
@@ -45,6 +45,31 @@ def _deduplicate_attachments(items: list[dict[str, str]]) -> list[dict[str, str]
         if url:
             deduplicated[url] = {"title": clean_inline(item.get("title", "")), "url": url}
     return [deduplicated[url] for url in sorted(deduplicated)]
+
+
+def _contextualize_attachments(
+    attachments: list[dict[str, Any]], parent: dict[str, Any]
+) -> list[dict[str, Any]]:
+    """不下載附件時，仍保留附件與福利主體之間的完整關係。"""
+    contextualized: list[dict[str, Any]] = []
+    for attachment in attachments:
+        item = dict(attachment)
+        item.update(
+            {
+                "relation": "supplemental_document",
+                "document_type": "pdf" if is_pdf_attachment(item) else "other",
+                "parent_benefit_title": parent.get("title", ""),
+                "audiences": list(parent.get("audiences", [])),
+                "region": parent.get("region", ""),
+                "agency": parent.get("agency", ""),
+                "source_url": item.get("url", ""),
+                "official_page_url": parent.get("source_url", ""),
+                "last_checked_at": now_iso(),
+                "extraction_status": "not_extracted",
+            }
+        )
+        contextualized.append(item)
+    return contextualized
 
 
 def _stable_response_hash(response: FetchResponse, payload: Any | None = None) -> str:
@@ -112,6 +137,81 @@ def ingest_benefit_feed(source: dict[str, Any], database: Database) -> Counter[s
         _record_result(counter, result)
         counter["fetched"] += 1
     counter["deactivated"] += database.deactivate_missing("benefit", source["id"], seen_external_ids)
+    return counter
+
+
+def ingest_benefit_pages(source: dict[str, Any], database: Database) -> Counter[str]:
+    """把設定檔列出的官方申辦頁面逐頁整理成可查詢福利。"""
+    counter: Counter[str] = Counter()
+    configured_items = source.get("items", [])
+    if not isinstance(configured_items, list) or not configured_items:
+        raise ValueError(f"{source['id']} 必須提供非空白 items 陣列")
+
+    seen_external_ids: set[str] = set()
+    page_snapshots: list[dict[str, str]] = []
+    for item in configured_items:
+        if not isinstance(item, dict):
+            continue
+        external_id = clean_inline(str(item.get("id", "")))
+        page_url = clean_inline(str(item.get("url", "")))
+        if not external_id or not page_url:
+            counter["invalid_items"] += 1
+            continue
+        seen_external_ids.add(external_id)
+        try:
+            response = fetch(page_url)
+            parsed = parse_taipei_detail(
+                response.text(), page_url, clean_inline(item.get("title")), clean_inline(item.get("agency"))
+            )
+            page_snapshots.append({"id": external_id, "hash": _sha256(response.body)})
+
+            for key in ("title", "agency", "region", "service_type"):
+                if item.get(key):
+                    parsed[key] = item[key]
+            if item.get("audiences"):
+                parsed["audiences"] = sorted(set(item["audiences"]))
+            if item.get("tags"):
+                parsed["tags"] = sorted(set(item["tags"]))
+
+            parsed.update(
+                {
+                    "source_id": source["id"],
+                    "external_id": external_id,
+                    "source_url": page_url,
+                    "last_checked_at": now_iso(),
+                    "raw": {
+                        "catalog_item": item,
+                        "raw_text": parsed.pop("raw_text", ""),
+                    },
+                }
+            )
+            if item.get("extract_pdfs", source.get("extract_pdfs", False)):
+                parsed["attachments"] = enrich_attachments(parsed.get("attachments", []), parsed)
+                merge_pdf_fields_into_parent(parsed)
+                for attachment in parsed["attachments"]:
+                    if attachment.get("document_type") == "pdf":
+                        counter[f"pdf_{attachment.get('extraction_status', 'unknown')}"] += 1
+            else:
+                parsed["attachments"] = _contextualize_attachments(
+                    parsed.get("attachments", []), parsed
+                )
+            parsed["eligibility_rules"] = extract_eligibility_rules(parsed.get("eligibility_text", ""))
+            _record_result(counter, database.upsert_benefit(parsed))
+            counter["fetched"] += 1
+        except Exception as error:
+            counter["failed_items"] += 1
+            counter[f"failed_{external_id}"] += 1
+
+    if not page_snapshots:
+        raise RuntimeError(f"{source['id']} 的所有官方頁面都下載失敗")
+    database.upsert_source_snapshot(
+        source["id"], source["name"], source["url"],
+        _sha256(json.dumps(page_snapshots, sort_keys=True).encode("utf-8")),
+        "application/json", None, None,
+    )
+    counter["deactivated"] += database.deactivate_missing(
+        "benefit", source["id"], seen_external_ids
+    )
     return counter
 
 
@@ -205,6 +305,8 @@ def refresh(database: Database, config_path: str | None = None) -> dict[str, Any
             kind = source.get("kind")
             if kind == "benefit_json_feed":
                 counter = ingest_benefit_feed(source, database)
+            elif kind == "benefit_pages":
+                counter = ingest_benefit_pages(source, database)
             elif kind == "institution_csv":
                 counter = ingest_institution_csv(source, database)
             else:
