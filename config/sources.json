@@ -3,7 +3,7 @@
   "scope": {
     "city": "臺北市",
     "primary_audience": "長者",
-    "supported_audiences": ["學生", "上班族", "長者"]
+    "supported_audiences": ["學生", "上班族", "長者", "一般民眾"]
   },
   "sources": [
     {
@@ -14,6 +14,176 @@
       "catalog_url": "https://health.gov.taipei/News.aspx?n=F6F7A595359D9597&sms=824683C75F5DE258",
       "extract_pdfs": true,
       "enabled": true
+    },
+    {
+      "id": "official_benefit_pages",
+      "name": "中央與臺北市官方福利申辦頁面",
+      "kind": "benefit_pages",
+      "url": "https://www.gov.tw/",
+      "extract_pdfs": false,
+      "enabled": true,
+      "items": [
+        {
+          "id": "student_scholarships_overview",
+          "title": "大專院校學生獎助學金總覽",
+          "url": "https://www.gov.tw/News_Content_26_402188",
+          "agency": "我的E政府（官方資料彙整）",
+          "region": "全國",
+          "service_type": "獎學金",
+          "audiences": ["學生"],
+          "tags": ["獎學金", "就學補助"]
+        },
+        {
+          "id": "student_loan",
+          "title": "高級中等以上學校學生就學貸款",
+          "url": "https://sloan.bot.com.tw/customer/login/SLoanLogin.action",
+          "agency": "教育部／承貸銀行",
+          "region": "全國",
+          "service_type": "就學貸款",
+          "audiences": ["學生"],
+          "tags": ["就學貸款", "學費"]
+        },
+        {
+          "id": "student_disadvantaged_tuition",
+          "title": "高級中等學校各類學雜費減免及就學費用補助",
+          "url": "https://www.gov.tw/News_Content_2_393138",
+          "agency": "教育部國民及學前教育署",
+          "region": "全國",
+          "service_type": "就學補助",
+          "audiences": ["學生"],
+          "tags": ["弱勢學生補助", "學雜費減免", "就學補助"]
+        },
+        {
+          "id": "student_dormitory_subsidy",
+          "title": "大專校院學生校內住宿補貼",
+          "url": "https://edu.law.moe.gov.tw/LawContent.aspx?id=GL002345",
+          "agency": "教育部",
+          "region": "全國",
+          "service_type": "住宿補助",
+          "audiences": ["學生"],
+          "tags": ["住宿補助", "學生宿舍"]
+        },
+        {
+          "id": "student_indigenous_scholarship",
+          "title": "大專校院原住民學生獎助學金",
+          "url": "https://www.gov.tw/News_Content_2_370175",
+          "agency": "原住民族委員會",
+          "region": "全國",
+          "service_type": "獎學金",
+          "audiences": ["學生"],
+          "tags": ["獎學金", "弱勢學生補助", "原住民"]
+        },
+        {
+          "id": "worker_subsidy_hub",
+          "title": "勞工補助與就業促進措施",
+          "url": "https://emps.wda.gov.tw/Internet/Index/labor-subsidy.aspx",
+          "agency": "勞動部勞動力發展署",
+          "region": "全國",
+          "service_type": "勞工補助",
+          "audiences": ["上班族"],
+          "tags": ["勞工補助", "就業支持"]
+        },
+        {
+          "id": "worker_unemployment_benefit",
+          "title": "失業給付申請",
+          "url": "https://www.gov.tw/News_Content_2_389560",
+          "agency": "勞動部勞工保險局",
+          "region": "全國",
+          "service_type": "失業給付",
+          "audiences": ["上班族"],
+          "tags": ["失業給付", "就業保險"]
+        },
+        {
+          "id": "worker_vocational_training_allowance",
+          "title": "就保職業訓練生活津貼",
+          "url": "https://www.gov.tw/News_Content_2_389561",
+          "agency": "勞動部勞工保險局",
+          "region": "全國",
+          "service_type": "職業訓練",
+          "audiences": ["上班族"],
+          "tags": ["職業訓練", "生活津貼", "就業支持"]
+        },
+        {
+          "id": "worker_parental_leave_allowance",
+          "title": "育嬰留職停薪津貼及薪資補助",
+          "url": "https://www.gov.tw/News_Content_2_559418",
+          "agency": "勞動部勞工保險局",
+          "region": "全國",
+          "service_type": "育兒與就業支持",
+          "audiences": ["上班族"],
+          "tags": ["育嬰留職停薪", "育兒", "就業支持"]
+        },
+        {
+          "id": "elderly_living_allowance_taipei",
+          "title": "臺北市中低收入老人生活津貼",
+          "url": "https://dosw.gov.taipei/cp.aspx?n=FCF3DAE98DDA289F",
+          "agency": "臺北市政府社會局",
+          "region": "臺北市",
+          "service_type": "老人津貼",
+          "audiences": ["長者"],
+          "tags": ["老人津貼", "生活津貼"]
+        },
+        {
+          "id": "elderly_special_care_allowance_taipei",
+          "title": "臺北市中低收入老人特別照顧津貼",
+          "url": "https://dosw.gov.taipei/cp.aspx?n=71A6E290CB53671F&s=B46AFFAD7B1617A0",
+          "agency": "臺北市政府社會局",
+          "region": "臺北市",
+          "service_type": "老人津貼",
+          "audiences": ["長者"],
+          "tags": ["老人津貼", "居家照顧", "照顧者支持"]
+        },
+        {
+          "id": "elderly_care_map_taipei",
+          "title": "臺北市老人照顧與失智服務地圖",
+          "url": "https://map.dosw.gov.taipei/taipeiWelfare_map/all_new/care_map.aspx",
+          "agency": "臺北市政府社會局／衛生局",
+          "region": "臺北市",
+          "service_type": "機構與失智照顧",
+          "audiences": ["長者"],
+          "tags": ["機構服務", "失智照顧", "居家照顧", "交通接送", "醫療照護"]
+        },
+        {
+          "id": "public_emergency_relief_taipei",
+          "title": "臺北市急難救助",
+          "url": "https://dosw.gov.taipei/cp.aspx?n=0BF751F1B9F07AA1",
+          "agency": "臺北市政府社會局",
+          "region": "臺北市",
+          "service_type": "急難救助",
+          "audiences": ["一般民眾"],
+          "tags": ["急難救助", "生活救助", "醫療救助"]
+        },
+        {
+          "id": "public_disability_living_allowance_taipei",
+          "title": "臺北市身心障礙者生活補助",
+          "url": "https://dosw.gov.taipei/cp.aspx?n=C764A5808F9A3B08",
+          "agency": "臺北市政府社會局",
+          "region": "臺北市",
+          "service_type": "身心障礙福利",
+          "audiences": ["一般民眾"],
+          "tags": ["身心障礙福利", "生活補助"]
+        },
+        {
+          "id": "public_rental_subsidy",
+          "title": "300億元中央擴大租金補貼",
+          "url": "https://pip.moi.gov.tw/Publicize/Info/B1020",
+          "agency": "內政部國土管理署",
+          "region": "全國",
+          "service_type": "住宅補助",
+          "audiences": ["一般民眾"],
+          "tags": ["住宅補助", "租金補貼"]
+        },
+        {
+          "id": "public_childcare_allowance",
+          "title": "2至未滿5歲育兒津貼及5歲至入國民小學前就學補助",
+          "url": "https://www.gov.tw/News_Content_2_524816",
+          "agency": "教育部國民及學前教育署",
+          "region": "全國",
+          "service_type": "育兒福利",
+          "audiences": ["一般民眾"],
+          "tags": ["育兒福利", "育兒津貼", "幼兒就學補助"]
+        }
+      ]
     },
     {
       "id": "taipei_social_ltc_directory",

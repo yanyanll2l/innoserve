@@ -111,8 +111,14 @@ def _main_section(text: str, title: str) -> str:
             end = min(end, position)
     start = 0
     field_starts: list[int] = []
-    for label in ["申請方式", "業務聯絡窗口", "服務內容說明", "洽辦單位", "服務對象"]:
-        match = re.search(rf"(?:^|\n){re.escape(label)}(?:\n|\s)", text[:end])
+    numbered_prefix = r"(?:[（(]?[一二三四五六七八九十\d]+[）)、.．]\s*)?"
+    for label in [
+        "申請方式", "申辦流程", "申辦資格", "業務聯絡窗口", "聯絡窗口",
+        "服務內容說明", "服務內容", "標準及規定", "洽辦單位", "服務對象",
+    ]:
+        match = re.search(
+            rf"(?:^|\n){numbered_prefix}{re.escape(label)}(?:\s*[：:]|\n|\s)", text[:end]
+        )
         if match:
             field_starts.append(match.start())
     if field_starts:
@@ -125,15 +131,21 @@ def _main_section(text: str, title: str) -> str:
 
 
 FIELD_LABELS = [
-    "申請方式", "洽辦單位", "服務內容說明", "服務內容", "服務對象", "應備文件",
-    "收費方式", "補助標準", "聯絡電話", "業務聯絡窗口", "地址", "電子信箱",
-    "長照交通預約平台",
+    "申請方式", "申辦流程", "洽辦單位", "服務內容說明", "服務內容", "服務對象",
+    "申辦資格", "標準及規定", "應備文件", "應備物品", "收費方式", "補助標準", "給付標準",
+    "聯絡電話", "業務聯絡窗口", "聯絡窗口", "地址", "電子信箱",
+    "作業天數", "參考資料", "備註", "更新日期", "長照交通預約平台",
 ]
 
 
 def _extract_fields(text: str) -> dict[str, str]:
     labels_pattern = "|".join(re.escape(label) for label in sorted(FIELD_LABELS, key=len, reverse=True))
-    pattern = re.compile(rf"(?P<label>{labels_pattern})\s*(?P<value>.*?)(?=\n(?:{labels_pattern})\s*|$)", re.DOTALL)
+    numbered_prefix = r"(?:[（(]?[一二三四五六七八九十\d]+[）)、.．]\s*)?"
+    pattern = re.compile(
+        rf"(?:^|\n){numbered_prefix}(?P<label>{labels_pattern})\s*[：:]?\s*"
+        rf"(?P<value>.*?)(?=\n{numbered_prefix}(?:{labels_pattern})\s*[：:]?\s*|$)",
+        re.DOTALL,
+    )
     fields: dict[str, str] = {}
     for match in pattern.finditer(text):
         label = match.group("label")
@@ -146,6 +158,19 @@ def _extract_fields(text: str) -> dict[str, str]:
 def classify(title: str, text: str) -> tuple[str, list[str], list[str]]:
     haystack = f"{title} {text}"
     categories = [
+        ("獎學金", ["獎學金", "獎助學金"]),
+        ("就學貸款", ["就學貸款", "助學貸款"]),
+        ("就學補助", ["弱勢學生", "弱勢助學", "學雜費減免", "就學費用補助", "助學金"]),
+        ("住宿補助", ["住宿補貼", "住宿補助", "住宿優惠", "宿舍"]),
+        ("勞工補助", ["勞工補助", "就業獎勵", "就業促進"]),
+        ("失業給付", ["失業給付", "失業認定"]),
+        ("職業訓練", ["職業訓練", "職訓"]),
+        ("育兒與就業支持", ["育嬰留職停薪", "就業支持", "友善職場"]),
+        ("老人津貼", ["老人生活津貼", "老人特別照顧津貼", "老人津貼"]),
+        ("急難救助", ["急難救助", "急難紓困"]),
+        ("身心障礙福利", ["身心障礙者生活補助", "身心障礙福利", "身心障礙年金"]),
+        ("住宅補助", ["租金補貼", "住宅補助", "房屋租金補貼"]),
+        ("育兒福利", ["育兒津貼", "幼兒就學補助", "托育補助"]),
         ("申請與給付", ["申請及給付", "如何申請", "申請長照"]),
         ("交通接送", ["交通接送", "接送"]),
         ("居家照顧", ["居家服務", "居家照顧"]),
@@ -184,7 +209,10 @@ def classify(title: str, text: str) -> tuple[str, list[str], list[str]]:
 
 def extract_eligibility_rules(text: str) -> dict[str, Any]:
     rules: dict[str, Any] = {"machine_extracted": True, "requires_official_assessment": False}
-    if "實際居住本市" in text or "居住本市" in text:
+    if any(
+        phrase in text
+        for phrase in ("實際居住本市", "居住本市", "設籍本市", "設籍臺北市", "設籍台北市")
+    ):
         rules["city"] = "臺北市"
     levels = [int(value) for value in re.findall(r"長照(?:需要)?等級第\s*(\d+)\s*級", text)]
     if levels:
@@ -250,12 +278,18 @@ def parse_taipei_detail(
     title = re.sub(r"^(臺北市政府(?:社會局|衛生局)[－-])", "", title).strip()
     main = _main_section(text, title)
     fields = _extract_fields(main)
-    service_content = fields.get("服務內容說明") or fields.get("服務內容") or main
-    eligibility = fields.get("服務對象", "")
-    application = fields.get("申請方式") or fields.get("洽辦單位", "")
-    documents = fields.get("應備文件", "")
-    fees = fields.get("收費方式") or fields.get("補助標準", "")
-    contact_parts = [fields.get(key, "") for key in ("業務聯絡窗口", "聯絡電話", "地址", "電子信箱")]
+    service_content = (
+        fields.get("服務內容說明") or fields.get("服務內容")
+        or fields.get("標準及規定") or main
+    )
+    eligibility = fields.get("服務對象") or fields.get("申辦資格", "")
+    application = fields.get("申請方式") or fields.get("申辦流程") or fields.get("洽辦單位", "")
+    documents = fields.get("應備文件") or fields.get("應備物品", "")
+    fees = fields.get("收費方式") or fields.get("補助標準") or fields.get("給付標準", "")
+    contact_parts = [
+        fields.get(key, "")
+        for key in ("業務聯絡窗口", "聯絡窗口", "聯絡電話", "地址", "電子信箱")
+    ]
     contact = "；".join(part for part in contact_parts if part)
     updated = _first_match([r"資料更新[:：]\s*([^\n]+)", r"更新日期\s*([^\n]+)"], text)
     service_type, tags, audiences = classify(title, f"{main} {eligibility}")
